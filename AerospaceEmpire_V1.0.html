@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>航天帝国：豪赌 (2000-2030) - 进阶版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Rajdhani', 'Noto Sans SC', sans-serif;
+            background-color: #020617;
+            color: #f1f5f9;
+            overflow-x: hidden;
+            user-select: none;
+        }
+        .font-orbitron { font-family: 'Orbitron', 'Noto Sans SC', sans-serif; }
+        .hud-glass {
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(56, 189, 248, 0.05);
+        }
+        .hud-glass-gold {
+            background: rgba(24, 18, 9, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(234, 179, 8, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(234, 179, 8, 0.08);
+        }
+        .hud-glass-red {
+            background: rgba(30, 10, 10, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(239, 68, 68, 0.08);
+        }
+        .hud-glass-emerald {
+            background: rgba(6, 28, 18, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(16, 185, 129, 0.08);
+        }
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 60;
+        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #0284c7; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: #38bdf8; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-slate-950 text-slate-100 relative selection:bg-cyan-500 selection:text-black">
+
+    <div class="scanlines"></div>
+
+    <!-- 开场动画 overlay -->
+    <div id="intro-screen" onclick="dismissIntroImmediately()" class="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 transition-opacity duration-700 cursor-pointer">
+        <div id="intro-title-box" class="text-center flex flex-col items-center gap-4 opacity-0 transition-opacity duration-700">
+            <span class="text-xs md:text-sm text-cyan-400 font-mono tracking-[0.3em] uppercase animate-pulse" data-i18n="intro.subtitle">商业与国家航天舰队指挥部</span>
+            <h1 class="text-3xl md:text-6xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-200 to-amber-400 tracking-wider" data-i18n="intro.title">航天帝国</h1>
+            <p class="text-amber-400 font-orbitron font-bold tracking-widest text-lg md:text-2xl" data-i18n="intro.sub">豪赌时代 (2000-2030)</p>
+            <span class="text-[10px] text-slate-500 font-mono mt-4 animate-pulse" data-i18n="intro.skip">[ 点击任意处快速跳过开场 ]</span>
+        </div>
+    </div>
+
+    <!-- 关键抉择 / 危机事件弹窗 (CRITICAL CHOICE) -->
+    <div id="choice-modal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden">
+        <div class="max-w-xl w-full hud-glass-red rounded-2xl p-6 flex flex-col gap-5 border-red-500/60 shadow-2xl">
+            <div class="border-b border-red-500/30 pb-3 flex items-center gap-3">
+                <span class="text-2xl">⚠️</span>
+                <div>
+                    <span class="text-xs text-red-400 font-mono tracking-widest uppercase">LAUNCH COUNTDOWN ANOMALY</span>
+                    <h2 id="choice-title" class="text-xl font-black font-orbitron text-amber-300">发射前危机抉择</h2>
+                </div>
+            </div>
+            <p id="choice-desc" class="text-xs text-slate-300 leading-relaxed font-sans">事件描述...</p>
+            <div id="choice-options-container" class="flex flex-col gap-2.5 mt-2"></div>
+        </div>
+    </div>
+
+    <!-- 新手指引弹窗 -->
+    <div id="tutorial-modal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden">
+        <div class="max-w-2xl w-full hud-glass rounded-2xl p-6 md:p-8 flex flex-col gap-6 border-cyan-500/40 shadow-2xl relative">
+            <button onclick="skipTutorial()" class="absolute top-4 right-4 px-3 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-xs font-mono text-cyan-400 transition">
+                ⚡ [ 跳过教程 ]
+            </button>
+            <div class="border-b border-cyan-500/30 pb-3">
+                <span id="tut-step-badge" class="text-xs text-amber-400 font-mono tracking-widest uppercase">指挥部简报 (1/3)</span>
+                <h2 id="tut-title" class="text-2xl font-black font-orbitron text-cyan-400 tracking-wider mt-1">核心玩法与破产规则</h2>
+            </div>
+            <div id="tut-body" class="text-xs text-slate-300 leading-relaxed bg-slate-900/80 p-4 rounded-xl border border-slate-800 min-h-[140px] font-sans"></div>
+            <div class="flex justify-between items-center pt-2">
+                <div class="flex gap-1.5" id="tut-dots"></div>
+                <button onclick="nextTutorialStep()" id="tut-next-btn" class="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-orbitron font-bold text-xs rounded-lg uppercase">
+                    下一步 ➔
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 阵营选择弹窗 -->
+    <div id="faction-modal" class="fixed inset-0 z-40 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden">
+        <div class="max-w-5xl w-full hud-glass rounded-2xl p-6 md:p-8 flex flex-col gap-6 border-cyan-500/40 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center border-b border-cyan-500/30 pb-4 gap-4">
+                <div>
+                    <span class="text-xs text-cyan-400 font-mono tracking-widest uppercase">COMMERCIAL & GOVERNMENT SPACE FLEET COMMAND (2000-2030)</span>
+                    <h1 class="text-2xl md:text-4xl font-black font-orbitron text-cyan-400 tracking-wider mt-1" data-i18n="faction.modal.title">航天帝国：豪赌</h1>
+                </div>
+            </div>
+            <div class="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-lg border border-slate-800" data-i18n="faction.modal.tip">
+                ⚠️ 极高难度策略：各阵营份额动态起伏，新兴航天公司将不断成立抢占市场。按下【火箭起飞】后可能触发关键危机抉择！
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="faction-cards-container"></div>
+        </div>
+    </div>
+
+    <!-- 主 HUD 顶部栏 -->
+    <header class="w-full bg-slate-900/90 border-b border-cyan-500/30 px-4 py-2 sticky top-0 z-30 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="flex flex-col">
+                    <span id="hud-faction-name" class="text-[11px] text-cyan-400/90 font-mono font-bold tracking-wider uppercase">阵营: ---</span>
+                    <div class="flex items-center gap-2">
+                        <span id="hud-year" class="text-xl font-black font-orbitron text-amber-400">2000</span>
+                        <span id="hud-quarter" class="text-xs font-mono text-amber-200">Q1</span>
+                        <span id="hud-standdown-badge" class="hidden text-[10px] px-2 py-0.5 bg-red-950 text-red-300 border border-red-700/80 rounded font-mono animate-pulse">
+                            ⚠️ 停飞整顿 (<span id="standdown-turns">0</span>季度)
+                        </span>
+                    </div>
+                </div>
+                <div class="h-8 w-px bg-slate-700"></div>
+                <div class="flex items-center gap-1">
+                    <button onclick="setSpeed(0)" id="btn-pause" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-orbitron font-bold rounded border border-slate-600">⏸</button>
+                    <button onclick="setSpeed(1)" id="btn-speed1" class="px-2.5 py-1 bg-cyan-950 text-cyan-400 border border-cyan-500/50 text-xs font-orbitron font-bold rounded">1倍速</button>
+                    <button onclick="setSpeed(2)" id="btn-speed2" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-orbitron font-bold rounded border border-slate-600">2倍速</button>
+                </div>
+                <div class="h-8 w-px bg-slate-700"></div>
+                <div class="flex items-center gap-1" data-i18n-switch>
+                    <button onclick="setLanguage('zh')" id="btn-lang-zh" class="px-2.5 py-1 text-xs font-orbitron font-bold rounded border border-slate-600">中文</button>
+                    <button onclick="setLanguage('en')" id="btn-lang-en" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-orbitron font-bold rounded border border-slate-600">EN</button>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+                <div class="flex items-center space-x-2 bg-slate-950/80 px-3 py-1 rounded-lg border border-slate-800">
+                    <div>
+                        <div class="text-[9px] text-slate-400 uppercase" data-i18n="hud.capital.debt">资金 / 债务</div>
+                        <div class="font-orbitron font-bold text-sm flex gap-1">
+                            <span id="res-capital" class="text-emerald-400">$0M</span>
+                            <span class="text-slate-500">/</span>
+                            <span id="res-debt" class="text-red-400">-$0M</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 bg-slate-950/80 px-3 py-1 rounded-lg border border-slate-800">
+                    <div>
+                        <div class="text-[9px] text-slate-400 uppercase" data-i18n="hud.networth">净资产 (下限 -$1000M)</div>
+                        <div id="res-networth" class="font-orbitron text-sm font-bold text-emerald-300">$0M</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 bg-slate-950/80 px-3 py-1 rounded-lg border border-slate-800">
+                    <div>
+                        <div class="text-[9px] text-slate-400 uppercase" data-i18n="hud.tech">科研数据 (TP)</div>
+                        <div id="res-tech" class="text-cyan-400 font-orbitron text-sm font-bold">0 TP</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 bg-slate-950/80 px-3 py-1 rounded-lg border border-amber-500/30">
+                    <div>
+                        <div class="text-[9px] text-amber-400/90 font-bold uppercase" data-i18n="hud.prestige">荣誉值 / 可靠性</div>
+                        <div class="font-orbitron font-bold text-sm flex gap-1">
+                            <span id="res-prestige" class="text-amber-400">0</span>
+                            <span class="text-slate-500">|</span>
+                            <span id="res-reliability" class="text-blue-400">70%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 bg-slate-950/80 px-3 py-1 rounded-lg border border-slate-800">
+                    <div>
+                        <div class="text-[9px] text-slate-400 uppercase" data-i18n="hud.market">全球份额</div>
+                        <div id="res-market" class="text-purple-400 font-orbitron text-sm font-bold">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 游戏主界面面板 -->
+    <main class="max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 flex-grow">
+
+        <!-- 左侧面板 (3列) -->
+        <section class="lg:col-span-3 flex flex-col gap-4">
+            
+            <div class="hud-glass rounded-xl p-3 flex flex-col gap-2">
+                <div class="flex justify-between items-center border-b border-cyan-500/20 pb-1.5">
+                    <h3 class="font-orbitron text-xs font-bold text-cyan-400 tracking-wider uppercase" data-i18n="panel.rocket">火箭硬件规格与测试</h3>
+                </div>
+                <div class="text-xs flex justify-between items-center mt-1">
+                    <span class="text-slate-400" data-i18n="stat.payload">最大运载能力:</span>
+                    <span id="stat-max-payload" class="font-bold text-amber-400 font-mono">15.0 吨</span>
+                </div>
+                <div class="text-xs flex justify-between items-center">
+                    <span class="text-slate-400" data-i18n="stat.orbits">已解锁轨道:</span>
+                    <span id="stat-unlocked-orbits" class="font-bold text-cyan-300 font-mono">LEO</span>
+                </div>
+                <div class="text-xs flex justify-between items-center">
+                    <span class="text-slate-400" data-i18n="stat.rel">发射基础可靠性:</span>
+                    <span id="stat-flight-rel" class="font-bold text-blue-400 font-mono">65%</span>
+                </div>
+                <div class="w-full bg-slate-950 rounded-full h-2 border border-slate-800 overflow-hidden">
+                    <div id="bar-flight-rel" class="bg-blue-500 h-full transition-all duration-300" style="width: 65%;"></div>
+                </div>
+                <div class="grid grid-cols-1 gap-2 mt-2">
+                    <button onclick="payDownDebt()" class="px-2 py-1.5 bg-slate-900 hover:bg-slate-800 border border-emerald-500/40 text-emerald-300 text-[11px] font-orbitron rounded flex flex-col items-center">
+                        <span data-i18n="btn.paydebt">偿还债务</span>
+                        <span class="text-[9px] text-slate-400 font-mono" data-i18n="btn.paydebt.sub">$100M 递减</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 前沿科技树 -->
+            <div class="hud-glass rounded-xl p-3 flex flex-col gap-2 flex-grow max-h-[380px]">
+                <div class="flex justify-between items-center border-b border-cyan-500/20 pb-1.5">
+                    <h3 class="font-orbitron text-xs font-bold text-cyan-400 tracking-wider uppercase" data-i18n="panel.tech">前沿科技研发</h3>
+                    <span class="text-[10px] text-slate-400 font-mono" data-i18n="panel.tech.era">2000-2030</span>
+                </div>
+                <div id="tech-list-container" class="flex flex-col gap-2 overflow-y-auto pr-1 flex-grow"></div>
+            </div>
+
+        </section>
+
+        <!-- 中央面板 (6列) -->
+        <section class="lg:col-span-6 flex flex-col gap-4">
+            
+            <!-- 匀速时间轴进度条 -->
+            <div class="hud-glass rounded-xl px-4 py-2.5 flex flex-col gap-1.5">
+                <div class="flex justify-between items-center text-xs font-orbitron font-bold">
+                    <span class="text-cyan-400" data-i18n="timeline">2000-2030 时代匀速时间轴</span>
+                    <span id="timeline-progress-label" class="text-amber-400 font-mono">2000年 Q1 (0%)</span>
+                </div>
+                <div class="w-full bg-slate-950 rounded-full h-2 border border-cyan-950 overflow-hidden relative">
+                    <div id="timeline-bar" class="bg-gradient-to-r from-cyan-500 via-sky-400 to-amber-500 h-full transition-all duration-200" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- 高流畅度 2D 轨迹地图 -->
+            <div class="hud-glass rounded-xl p-3 relative flex flex-col justify-between overflow-hidden">
+                <div class="flex justify-between items-center mb-2 z-10">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+                        <h3 class="font-orbitron font-bold text-xs text-cyan-400 uppercase tracking-wider" data-i18n="map.title">全球轨道与多行星系统监控</h3>
+                    </div>
+                    <div class="text-[11px] text-slate-400 font-mono">
+                        <span data-i18n="map.sats">近地/同步卫星: </span><span id="telemetry-sats" class="text-cyan-300 font-bold">0</span> | <span data-i18n="map.probes">深空探测器: </span><span id="telemetry-probes" class="text-amber-300 font-bold">0</span>
+                    </div>
+                </div>
+
+                <div class="relative w-full h-[230px] bg-slate-950/90 rounded-lg border border-cyan-950 overflow-hidden">
+                    <canvas id="orbitalCanvas" class="w-full h-full block cursor-pointer"></canvas>
+                    
+                    <div class="absolute top-2 left-2 z-20 bg-slate-900/90 border border-cyan-500/50 rounded-lg p-1.5 backdrop-blur-md flex items-center gap-2 shadow-lg">
+                        <span class="text-[10px] font-mono text-cyan-300 uppercase" data-i18n="map.view">观察区域:</span>
+                        <select id="planet-selector" onchange="changeCelestialView(this.value)" class="bg-slate-950 text-amber-300 text-xs font-orbitron font-bold rounded px-2 py-1 border border-cyan-800">
+                            <option value="earth" data-i18n="map.earth">🌍 地球轨道系统</option>
+                            <option value="moon" data-i18n="map.moon">🌕 月球系统 (月球基地/采样)</option>
+                            <option value="mars" data-i18n="map.mars">🔴 火星系统 (火星基地/先锋探针)</option>
+                            <option value="solar" data-i18n="map.solar">☀️ 太阳系全景 (跨行星任务)</option>
+                        </select>
+                    </div>
+
+                    <div id="canvas-overlay" class="absolute bottom-2 left-2 text-[10px] text-cyan-400/80 font-mono bg-slate-950/80 px-2 py-1 rounded border border-cyan-900 pointer-events-none" data-i18n="map.overlay">
+                        正在实时追踪在轨运载任务与微卫星光群轨迹
+                    </div>
+                </div>
+            </div>
+
+            <!-- 待接订单与准备发射清单 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="hud-glass rounded-xl p-3 flex flex-col gap-2 h-[340px]">
+                    <div class="flex justify-between items-center border-b border-cyan-500/20 pb-1.5">
+                        <div>
+                            <h3 class="font-orbitron text-xs font-bold text-amber-400 uppercase tracking-wider" data-i18n="market.title">待接商业与政府订单池</h3>
+                            <p class="text-[9px] text-slate-400" data-i18n="market.tip">评估风险：接受或拒绝订单</p>
+                        </div>
+                        <span id="next-contract-timer" class="text-[10px] font-mono text-cyan-400 bg-slate-900 border border-cyan-900 px-2 py-0.5 rounded" data-i18n="market.timer">刷新倒计时: 30s</span>
+                    </div>
+                    <div id="market-contracts-container" class="flex flex-col gap-2 overflow-y-auto pr-1 flex-grow"></div>
+                </div>
+
+                <div class="hud-glass rounded-xl p-3 flex flex-col gap-2 h-[340px]">
+                    <div class="flex justify-between items-center border-b border-cyan-500/20 pb-1.5">
+                        <div>
+                            <h3 class="font-orbitron text-xs font-bold text-emerald-400 uppercase tracking-wider" data-i18n="active.title">已接订单与火箭组装发射</h3>
+                            <p class="text-[9px] text-slate-400" data-i18n="active.tip">满足条件后点击【起飞】将触发危机抉择</p>
+                        </div>
+                        <span id="active-count-badge" class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-2 py-0.5 rounded font-mono">0 项待发射</span>
+                    </div>
+                    <div id="active-contracts-container" class="flex flex-col gap-2 overflow-y-auto pr-1 flex-grow"></div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- 右侧面板 (3列) -->
+        <section class="lg:col-span-3 flex flex-col gap-4">
+            
+            <!-- AI 竞品机构与新公司 -->
+            <div class="hud-glass rounded-xl p-3 flex flex-col gap-2">
+                <div class="flex justify-between items-center border-b border-cyan-500/20 pb-1.5">
+                    <h3 class="font-orbitron text-xs font-bold text-amber-400 uppercase tracking-wider" data-i18n="rivals.title">AI 竞品及新兴航天企业</h3>
+                    <span class="text-[10px] text-slate-400 font-mono" data-i18n="rivals.dynamic">动态份额</span>
+                </div>
+                <div id="rivals-container" class="flex flex-col gap-1.5 max-h-[180px] overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- 发射日志与世界大事件通告 -->
+            <div class="hud-glass rounded-xl p-3 flex flex-col gap-2 flex-grow max-h-[360px]">
+                <div class="flex justify-between items-center border-b border-cyan-500/20 pb-1.5">
+                    <h3 class="font-orbitron text-xs font-bold text-slate-300 uppercase tracking-wider" data-i18n="log.title">发射日志与世界大事件通告</h3>
+                </div>
+                <div id="telemetry-log" class="flex flex-col gap-1.5 overflow-y-auto text-[11px] font-mono text-slate-300 flex-grow pr-1">
+                    <div class="text-slate-500" data-i18n="log.init">[2000 Q1] 航天帝国指挥部正式上线。请注意宏观大事件与新兴商业公司挑战。</div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- 破产/结算总结 Modal -->
+    <div id="endgame-modal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden">
+        <div class="hud-glass max-w-2xl w-full rounded-2xl p-6 md:p-8 border-cyan-400/80 shadow-2xl flex flex-col gap-6">
+            <div class="text-center border-b border-cyan-500/30 pb-4">
+                <span id="endgame-subtitle" class="text-xs text-cyan-400 font-mono tracking-widest uppercase" data-i18n="end.subtitle">经营考评总结</span>
+                <h2 id="endgame-title" class="font-orbitron font-black text-3xl text-amber-400 mt-1" data-i18n="end.title">航天时代考评报告</h2>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl text-center">
+                    <div class="text-[10px] text-slate-400 uppercase" data-i18n="end.prestige">最终总荣誉值</div>
+                    <div id="end-prestige" class="text-amber-400 font-orbitron font-bold text-lg">0</div>
+                </div>
+                <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl text-center">
+                    <div class="text-[10px] text-slate-400 uppercase" data-i18n="end.capital">最终净资金</div>
+                    <div id="end-capital" class="text-emerald-400 font-orbitron font-bold text-lg">$0M</div>
+                </div>
+                <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl text-center">
+                    <div class="text-[10px] text-slate-400 uppercase" data-i18n="end.market">发射市场份额</div>
+                    <div id="end-market" class="text-purple-400 font-orbitron font-bold text-lg">0%</div>
+                </div>
+                <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl text-center">
+                    <div class="text-[10px] text-slate-400 uppercase" data-i18n="end.launches">成功 / 失败次数</div>
+                    <div id="end-launches" class="text-cyan-400 font-orbitron font-bold text-lg">0 / 0</div>
+                </div>
+            </div>
+            <div id="endgame-body" class="bg-slate-950/80 border border-cyan-900/50 p-4 rounded-xl text-xs leading-relaxed text-slate-300"></div>
+            <div class="flex justify-center mt-2">
+                <button onclick="location.reload()" class="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-orbitron font-bold rounded-xl shadow-lg uppercase" data-i18n="btn.restart">
+                    重新开启航天时代
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 航天帝国：豪赌 游戏引擎 (发射按钮触发 Critical Choice 版)
+         */
+
+        // ================== 全局语言切换 (I18N) ==================
+        let LANG = localStorage.getItem('spaceEmpireLang') || 'en';
+
+        // 双语字典：key -> { zh, en }
+        const I18N = {
+            // 顶部 HUD
+            'hud.faction': { zh: '阵营: ', en: 'Faction: ' },
+            'hud.standdown': { zh: '停飞整顿 (', en: 'GROUNDED (' },
+            'hud.standdown.q': { zh: '季度)', en: 'qtrs)' },
+            'hud.capital.debt': { zh: '资金 / 债务', en: 'Cash / Debt' },
+            'hud.networth': { zh: '净资产 (下限 -$1000M)', en: 'Net Worth (floor -$1000M)' },
+            'hud.tech': { zh: '科研数据 (TP)', en: 'Research Data (TP)' },
+            'hud.prestige': { zh: '荣誉值 / 可靠性', en: 'Prestige / Reliability' },
+            'hud.market': { zh: '全球份额', en: 'Global Share' },
+
+            // 左侧面板
+            'panel.rocket': { zh: '火箭硬件规格与测试', en: 'Rocket Hardware & Testing' },
+            'stat.payload': { zh: '最大运载能力:', en: 'Max Payload:' },
+            'stat.orbits': { zh: '已解锁轨道:', en: 'Unlocked Orbits:' },
+            'stat.rel': { zh: '发射基础可靠性:', en: 'Base Launch Reliability:' },
+            'btn.paydebt': { zh: '偿还债务', en: 'Pay Debt' },
+            'btn.paydebt.sub': { zh: '$100M 递减', en: '-$100M each' },
+            'panel.tech': { zh: '前沿科技研发', en: 'Frontier R&D' },
+            'panel.tech.era': { zh: '2000-2030', en: '2000-2030' },
+            'tech.era': { zh: ' 年代节点', en: ' era node' },
+            'tech.unlocked': { zh: '已解锁', en: 'Unlocked' },
+            'btn.research': { zh: '研发技术', en: 'Research' },
+
+            // 中央面板
+            'timeline': { zh: '2000-2030 时代匀速时间轴', en: '2000-2030 Timeline' },
+            'map.title': { zh: '全球轨道与多行星系统监控', en: 'Orbital & Planetary Monitor' },
+            'map.sats': { zh: '近地/同步卫星: ', en: 'LEO/GEO Sats: ' },
+            'map.probes': { zh: '深空探测器: ', en: 'Deep-Space Probes: ' },
+            'map.view': { zh: '观察区域:', en: 'View:' },
+            'map.earth': { zh: '地球轨道系统', en: 'Earth Orbit' },
+            'map.moon': { zh: '月球系统 (月球基地/采样)', en: 'Moon System' },
+            'map.mars': { zh: '火星系统 (火星基地/先锋探针)', en: 'Mars System' },
+            'map.solar': { zh: '太阳系全景 (跨行星任务)', en: 'Solar System' },
+            'map.overlay': { zh: '正在实时追踪在轨运载任务与微卫星光群轨迹', en: 'Tracking in-orbit missions & satellite constellation trails' },
+            'market.title': { zh: '待接商业与政府订单池', en: 'Commercial & Gov Contract Pool' },
+            'market.tip': { zh: '评估风险：接受或拒绝订单', en: 'Assess risk: accept or reject' },
+            'market.timer': { zh: '刷新倒计时: 30s', en: 'Refresh: 30s' },
+            'market.empty': { zh: '等待商业与政府订单推送中...', en: 'Awaiting contract offers...' },
+            'active.title': { zh: '已接订单与火箭组装发射', en: 'Accepted Orders & Assembly' },
+            'active.tip': { zh: '满足条件后点击【起飞】将触发危机抉择', en: 'Click Launch to trigger a Critical Choice' },
+            'active.badge': { zh: ' 项待发射', en: ' ready to launch' },
+            'active.empty': { zh: '尚无已接订单。请在左侧订单池接受商单。', en: 'No accepted orders. Accept contracts from the pool.' },
+
+            // 右侧面板
+            'rivals.title': { zh: 'AI 竞品及新兴航天企业', en: 'AI Rivals & New Space Firms' },
+            'rivals.dynamic': { zh: '动态份额', en: 'Dynamic Share' },
+            'log.title': { zh: '发射日志与世界大事件通告', en: 'Launch Log & World Events' },
+            'log.init': { zh: '[2000 Q1] 航天帝国指挥部正式上线。请注意宏观大事件与新兴商业公司挑战。', en: '[2000 Q1] Space Empire Command online. Watch for macro events & new rivals.' },
+
+            // 通用
+            'difficulty.low': { zh: '低风险', en: 'Low Risk' },
+            'difficulty.med': { zh: '中风险', en: 'Med Risk' },
+            'difficulty.high': { zh: '高风险', en: 'High Risk' },
+            'difficulty.extreme': { zh: '极高风险', en: 'Extreme' },
+            'contract.accept': { zh: '接受订单', en: 'Accept' },
+            'contract.reject': { zh: '拒绝', en: 'Reject' },
+            'contract.orbit': { zh: '目标轨道:', en: 'Orbit:' },
+            'contract.weight': { zh: '载荷质量:', en: 'Payload:' },
+            'contract.cost': { zh: '制造成本:', en: 'Build Cost:' },
+            'contract.penalty': { zh: '失利罚款:', en: 'Fail Penalty:' },
+            'progress.title': { zh: '火箭组装与测试进度', en: 'Assembly & Test Progress' },
+            'active.orbit': { zh: '轨道: ', en: 'Orbit: ' },
+            'active.weight': { zh: '质量: ', en: 'Mass: ' },
+            'active.cost': { zh: '组装费: ', en: 'Build: ' },
+            'active.ready': { zh: '准备就绪', en: 'READY' },
+            'active.prepping': { zh: '组装中...', en: 'PREPPING...' },
+            'btn.launch': { zh: '授权火箭起飞', en: 'AUTHORIZE LAUNCH' },
+            'btn.abandon': { zh: '放弃任务', en: 'Abandon' },
+            'share': { zh: '% 份额', en: '% share' },
+            'end.subtitle': { zh: '经营考评总结', en: 'Performance Report' },
+            'end.title': { zh: '航天时代考评报告', en: 'Space Age Report' },
+            'end.prestige': { zh: '最终总荣誉值', en: 'Final Prestige' },
+            'end.capital': { zh: '最终净资金', en: 'Final Net Cash' },
+            'end.market': { zh: '发射市场份额', en: 'Launch Market Share' },
+            'end.launches': { zh: '成功 / 失败次数', en: 'Success / Failure' },
+            'btn.restart': { zh: '重新开启航天时代', en: 'Restart Space Age' },
+            'faction.initial.cap': { zh: '初始资金: ', en: 'Initial Capital: ' },
+            'faction.initial.debt': { zh: '初始债务: ', en: 'Initial Debt: ' },
+
+            // 开场动画
+            'intro.subtitle': { zh: '商业与国家航天舰队指挥部', en: 'COMMERCIAL & GOVERNMENT SPACE FLEET COMMAND' },
+            'intro.title': { zh: '航天帝国', en: 'SPACE EMPIRE' },
+            'intro.sub': { zh: '豪赌时代 (2000-2030)', en: 'THE HIGH-STAKES ERA (2000-2030)' },
+            'intro.skip': { zh: '[ 点击任意处快速跳过开场 ]', en: '[ Click anywhere to skip intro ]' },
+            'faction.modal.title': { zh: '航天帝国：豪赌', en: 'SPACE EMPIRE: THE HIGH STAKES' },
+            'faction.modal.tip': { zh: '⚠️ 极高难度策略：各阵营份额动态起伏，新兴航天公司将不断成立抢占市场。按下【火箭起飞】后可能触发关键危机抉择！', en: '⚠️ Very hard strategy: shares shift dynamically and new firms keep spawning to grab market. Launching may trigger a Critical Choice!' },
+        };
+
+        function t(key) {
+            const e = I18N[key];
+            if (!e) return key;
+            return LANG === 'en' ? e.en : e.zh;
+        }
+
+        // 便捷双语：L('中文','English') 返回当前语言文本
+        function L(zh, en) {
+            return LANG === 'en' ? en : zh;
+        }
+
+        function setLanguage(lang) {
+            LANG = lang;
+            localStorage.setItem('spaceEmpireLang', lang);
+            // 更新 html lang 与页面标题
+            document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+            document.title = lang === 'en' ? 'Space Empire: The High Stakes (2000-2030)' : '航天帝国：豪赌 (2000-2030) - 进阶版';
+            // 更新语言按钮高亮
+            const bzh = document.getElementById('btn-lang-zh');
+            const ben = document.getElementById('btn-lang-en');
+            if (bzh && ben) {
+                const on = 'px-2.5 py-1 bg-cyan-600 text-black text-xs font-orbitron font-bold rounded';
+                const off = 'px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-orbitron font-bold rounded border border-slate-600';
+                bzh.className = lang === 'zh' ? on : off;
+                ben.className = lang === 'en' ? on : off;
+            }
+            applyLanguage();
+        }
+
+        // 扫描所有带 data-i18n / data-i18n-ph 的元素并应用当前语言
+        function applyLanguage() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                el.innerText = t(el.getAttribute('data-i18n'));
+            });
+            document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+                el.placeholder = t(el.getAttribute('data-i18n-ph'));
+            });
+            renderUI();
+        }
+
+        let currentCelestialView = 'earth';
+        let currentTutStep = 0;
+        let smoothTimeCounter = 0;
+        let introDismissed = false;
+
+        const TUTORIAL_STEPS = [
+            {
+                badge_zh: "指挥部简报 (1/3)",
+                badge_en: "Command Briefing (1/3)",
+                title_zh: "动态市场份额与新兴公司",
+                title_en: "Dynamic Market Share & New Firms",
+                body_zh: "• <b>动态份额：</b>全球市场份额将随各家发射成功率实时浮动！<br>• <b>新兴公司崛起：</b>时间推移中，如蓝箭航天(LandSpace)、星际荣耀(iSpace)、Relativity 等新商业公司将成立并侵蚀您的市场！<br>• <b>破产机制：</b>净资产低于 <b>-$1000M</b> 强制破产！",
+                body_en: "• <b>Dynamic share:</b> global market share fluctuates with each firm's launch record.<br>• <b>New rivals:</b> over time firms like LandSpace, iSpace and Relativity will spawn and eat your share.<br>• <b>Bankruptcy:</b> net worth below <b>-$1000M</b> forces liquidation!"
+            },
+            {
+                badge_zh: "可靠性与风险 (2/3)",
+                badge_en: "Reliability & Risk (2/3)",
+                title_zh: "可靠性：唯一的安全边际",
+                title_en: "Reliability Is Your Only Margin",
+                body_zh: "• <b>发射前确认可靠性：</b>可靠性是判断发射成败的核心依据，点火前务必核对当前数值。<br>• <b>硬闯风险：</b>可靠性不足时强行点火，炸箭概率显著上升，罚款与荣誉损失都很难看。<br>• <b>研发提升可靠性：</b>把钱投进科技树提升可靠性，才能在更远的轨道上稳赚。",
+                body_en: "• <b>Check reliability before launch:</b> reliability is the key indicator of mission success — verify the current value before ignition.<br>• <b>Gambling risk:</b> igniting with low reliability sharply raises the odds of a blow-up.<br>• <b>R&amp;D pays off:</b> invest in the tech tree to raise reliability before chasing farther orbits.",
+            },
+            {
+                badge_zh: "危机与探索 (3/3)",
+                badge_en: "Crisis & Exploration (3/3)",
+                title_zh: "关键抉择与跨行星任务",
+                title_en: "Critical Choices & Interplanetary Missions",
+                body_zh: "• <b>Critical Choice 关键抉择：</b>点击【🚀 授权火箭起飞】按钮时，将有概率触发发射前突发异常事件！<br>• <b>跨行星深空任务：</b>解锁液氢液氧上面级与核推进后，可承接月球基地建设计划、火星先锋营与小行星采样等跨行星豪赌商单！",
+                body_en: "• <b>Critical Choice:</b> clicking Launch may trigger a pre-launch anomaly event!<br>• <b>Interplanetary missions:</b> unlock the hydrolox upper stage and nuclear propulsion to take on lunar base, Mars outpost and asteroid-sample contracts!"
+            }
+        ];
+
+        const FACTIONS = {
+            nasa: {
+                id: 'nasa',
+                name_zh: 'NASA (美国国家航空航天局)',
+                name_en: 'NASA (National Aeronautics and Space Administration)',
+                desc_zh: '拥有极高历史声誉与国家背书的超级航天局，无初始债务，但受国会审计约束。',
+                desc_en: 'A super-agency with historic prestige and state backing. No initial debt, but subject to congressional oversight.',
+                capital: 800,
+                debt: 0,
+                techPoints: 60,
+                prestige: 85,
+                reliability: 74,
+                perk_zh: '🏛️ 高初始荣誉值 (85) | 零初始债务 | 每季度补贴+$40M',
+                perk_en: '🏛️ High initial Prestige (85) | Zero debt | +$40M quarterly subsidy'
+            },
+            casc: {
+                id: 'casc',
+                name_zh: '中国航天 (CASC)',
+                name_en: 'China Aerospace (CASC)',
+                desc_zh: '国家航天主力军，拥有极高的声誉与国家工程支持，极高可靠性与探月工程雄心。',
+                desc_en: 'The national main force, with immense prestige, state engineering support, high reliability, and lunar ambition.',
+                capital: 750,
+                debt: 50,
+                techPoints: 50,
+                prestige: 80,
+                reliability: 78,
+                perk_zh: '🇨🇳 雄厚荣誉值 (80) | 基础可靠性+15% | 极低初始债务',
+                perk_en: '🇨🇳 Strong Prestige (80) | +15% base reliability | Very low starting debt'
+            },
+            spacex: {
+                id: 'spacex',
+                name_zh: 'SpaceX (美国太空探索技术公司)',
+                name_en: 'SpaceX (Space Exploration Technologies)',
+                desc_zh: '商业航天领头羊，靠风投与债务高强度扩张，荣誉值随科技突破快速攀升。',
+                desc_en: 'The commercial leader, expanding aggressively on VC and debt; prestige climbs fast with tech breakthroughs.',
+                capital: 250,
+                debt: 150,
+                techPoints: 40,
+                prestige: 50,
+                reliability: 62,
+                perk_zh: '🚀 极高风投融资溢价 | 火箭构建成本降低35% | 前沿研发速度提升',
+                perk_en: '🚀 Huge VC premium | -35% rocket build cost | Faster R&D'
+            },
+            esa: {
+                id: 'esa',
+                name_zh: 'ESA (欧洲空间局)',
+                name_en: 'ESA (European Space Agency)',
+                desc_zh: '欧洲联合航天巨头，在商业卫星与科学探索领域享有深厚声誉。',
+                desc_en: 'A pan-European giant with deep prestige in commercial satellites and science exploration.',
+                capital: 600,
+                debt: 20,
+                techPoints: 70,
+                prestige: 75,
+                reliability: 70,
+                perk_zh: '🇪🇺 优秀声誉 (75) | 研发数据(TP)增长+35% | 高溢价商业订单',
+                perk_en: '🇪🇺 Solid Prestige (75) | +35% TP growth | Premium contracts'
+            },
+            rocketlab: {
+                id: 'rocketlab',
+                name_zh: 'Rocket Lab (小型商业航天)',
+                name_en: 'Rocket Lab (Small-Sat Commercial)',
+                desc_zh: '灵活的高效小卫星商业公司，处于声誉积累期，依靠极低开支稳步上升。',
+                desc_en: 'An agile, low-cost small-sat company building reputation with minimal overhead.',
+                capital: 120,
+                debt: 30,
+                techPoints: 30,
+                prestige: 40,
+                reliability: 65,
+                perk_zh: '🛰️ 极低季度开支 | 灵活小额股权融资 | 极低初始债务',
+                perk_en: '🛰️ Minimal quarterly costs | Flexible small raises | Very low debt'
+            }
+        };
+
+        let gameState = {
+            selectedFaction: null,
+            year: 2000,
+            quarter: 1,
+            gameSpeed: 1,
+            timerId: null,
+            capital: 500,
+            debt: 0,
+            techPoints: 50,
+            prestige: 50,
+            reliability: 65,
+            playerMarketShare: 15.0,
+            maxPayloadTons: 10.0,
+            unlockedOrbits: ['LEO'],
+            unlockedTech: [],
+            activeLoanPrincipal: 0,
+            loanCooldownSec: 0,
+            loanCooldownTimer: null,
+            vcCooldownSec: 0,
+            vcCooldownTimer: null,
+            standdownTurns: 0,
+            satsInLEO: 0,
+            deepSpaceProbes: 0,
+            successfulLaunches: 0,
+            failedLaunches: 0,
+            marketContracts: [],
+            acceptedContracts: [],
+            activeRocketAnim: []
+        };
+
+        let RIVALS = [
+            { id: 'spacex_ai', name: 'SpaceX', name_en: 'SpaceX', marketShare: 25.0 },
+            { id: 'ariane_ai', name: 'Arianespace', name_en: 'Arianespace', marketShare: 20.0 },
+            { id: 'casc_ai', name: '中国航天 (CASC)', name_en: 'China Aerospace (CASC)', marketShare: 20.0 },
+            { id: 'isro_ai', name: 'ISRO 印度航天', name_en: 'ISRO India', marketShare: 10.0 },
+            { id: 'rl_ai', name: 'Rocket Lab', name_en: 'Rocket Lab', marketShare: 10.0 }
+        ];
+
+        const TECH_TREE = [
+            { id: 'kerolox_gen2', era: 2000, name_zh: '第二代煤油液氧发动机', name_en: 'Gen-2 Kerolox Engine', costTP: 30, costCap: 80, desc_zh: '最大推力提升，起飞运力升至 18.0 吨，可靠性+5%。', desc_en: 'Higher thrust, payload to 18.0t, +5% reliability.' },
+            { id: 'geo_orbit', era: 2003, name_zh: '地球同步转移轨道(GEO)', name_en: 'Geostationary Transfer Orbit (GEO)', costTP: 50, costCap: 150, desc_zh: '解锁高额收益的 GEO 通信与广播卫星发射订单。', desc_en: 'Unlocks high-reward GEO comsat contracts.' },
+            { id: 'hydrolox_upper', era: 2008, name_zh: '深空液氢液氧上面级', name_en: 'Hydrolox Upper Stage', costTP: 70, costCap: 220, desc_zh: '解锁月球轨道与采样任务，运力提升至 35.0 吨。', desc_en: 'Unlocks lunar orbit & sample missions, payload to 35.0t.' },
+            { id: 'grid_fins_land', era: 2014, name_zh: '栅格舵一级火箭垂直回收', name_en: 'Grid-Fin Booster Landing', costTP: 100, costCap: 300, desc_zh: '火箭组装制造成本永久降低 35%。', desc_en: 'Permanently -35% rocket build cost.' },
+            { id: 'methalox_heavy', era: 2018, name_zh: '全流量液氧甲烷超重型发动机', name_en: 'Full-Flow Methalox Heavy Engine', costTP: 140, costCap: 420, desc_zh: '解锁火星轨道与先锋基地任务，运力升至 80.0 吨。', desc_en: 'Unlocks Mars orbit & base missions, payload to 80.0t.' },
+            { id: 'orbital_refuel', era: 2022, name_zh: '在轨低温推进剂加注技术', name_en: 'Orbital Cryo-Refueling', costTP: 180, costCap: 550, desc_zh: '解锁太阳系全景跨行星大型飞船任务，运力突破 120 吨。', desc_en: 'Unlocks large interplanetary ships, payload past 120t.' },
+            { id: 'nuclear_thermal', era: 2026, name_zh: '深空热核推进 (NTP) 引擎', name_en: 'Nuclear Thermal Propulsion (NTP)', costTP: 230, costCap: 750, desc_zh: '跨行星任务成功率提升 15%，深空订单奖励增加 50%。', desc_en: '+15% interplanetary success, +50% deep-space rewards.' }
+        ];
+
+        function playSfx(freq, type = 'sine', duration = 0.15) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (ctx.state === 'suspended') ctx.resume();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        function dismissIntroImmediately() {
+            if (introDismissed) return;
+            introDismissed = true;
+            const introScreen = document.getElementById('intro-screen');
+            if (introScreen) {
+                introScreen.classList.add('opacity-0');
+                setTimeout(() => {
+                    introScreen.classList.add('hidden');
+                    document.getElementById('tutorial-modal').classList.remove('hidden');
+                    currentTutStep = 0;
+                    renderTutorialStep();
+                }, 300);
+            }
+        }
+
+        function startCinematicIntroSequence() {
+            const introTitleBox = document.getElementById('intro-title-box');
+            setTimeout(() => {
+                if (introDismissed) return;
+                introTitleBox.classList.remove('opacity-0');
+                introTitleBox.classList.add('opacity-100');
+                playSfx(440, 'sine', 0.4);
+                setTimeout(() => dismissIntroImmediately(), 1800);
+            }, 500);
+        }
+
+        function renderTutorialStep() {
+            const step = TUTORIAL_STEPS[currentTutStep];
+            document.getElementById('tut-step-badge').innerText = LANG === 'en' ? step.badge_en : step.badge_zh;
+            document.getElementById('tut-title').innerText = LANG === 'en' ? step.title_en : step.title_zh;
+            document.getElementById('tut-body').innerHTML = LANG === 'en' ? step.body_en : step.body_zh;
+
+            const dotsContainer = document.getElementById('tut-dots');
+            dotsContainer.innerHTML = '';
+            TUTORIAL_STEPS.forEach((_, idx) => {
+                const dot = document.createElement('span');
+                dot.className = `w-2.5 h-2.5 rounded-full ${idx === currentTutStep ? 'bg-cyan-400' : 'bg-slate-700'}`;
+                dotsContainer.appendChild(dot);
+            });
+
+            const nextBtn = document.getElementById('tut-next-btn');
+            nextBtn.innerText = currentTutStep === TUTORIAL_STEPS.length - 1 ? L("选择阵营开启时代 ➔", "Select a Faction ➔") : L("下一步 ➔", "Next ➔");
+        }
+
+        function nextTutorialStep() {
+            playSfx(600, 'triangle', 0.1);
+            if (currentTutStep < TUTORIAL_STEPS.length - 1) {
+                currentTutStep++;
+                renderTutorialStep();
+            } else {
+                skipTutorial();
+            }
+        }
+
+        function skipTutorial() {
+            playSfx(750, 'sine', 0.15);
+            document.getElementById('tutorial-modal').classList.add('hidden');
+            renderFactionModal();
+            document.getElementById('faction-modal').classList.remove('hidden');
+        }
+
+        function changeCelestialView(view) {
+            currentCelestialView = view;
+            playSfx(500, 'triangle', 0.1);
+        }
+
+        function updateMarketShares(winnerId = null, loserId = null) {
+            if (winnerId === 'player') {
+                gameState.playerMarketShare = Math.min(65, gameState.playerMarketShare + 2.5);
+                RIVALS.forEach(r => r.marketShare = Math.max(2, r.marketShare - 0.5));
+            } else if (loserId === 'player') {
+                gameState.playerMarketShare = Math.max(3, gameState.playerMarketShare - 4.0);
+                RIVALS.forEach(r => r.marketShare += 0.8);
+            }
+
+            let currentSum = gameState.playerMarketShare + RIVALS.reduce((acc, r) => acc + r.marketShare, 0);
+            RIVALS.forEach(r => r.marketShare = parseFloat(((r.marketShare / currentSum) * 100).toFixed(1)));
+            gameState.playerMarketShare = parseFloat(((gameState.playerMarketShare / currentSum) * 100).toFixed(1));
+        }
+
+        function conductGroundTest() {
+            if (gameState.capital < 40) return;
+            gameState.capital -= 40;
+
+            const successRatio = gameState.reliability / 100;
+            const isSuccess = Math.random() < Math.max(0.4, successRatio);
+
+            if (isSuccess) {
+                gameState.reliability = Math.min(98, gameState.reliability + 3);
+                playSfx(600, 'triangle', 0.15);
+                logTelemetry(L(`🔥 地面试车成功！火箭可靠性提升 3% (当前: ${gameState.reliability}%)`, `🔥 Ground test success! Reliability +3% (now: ${gameState.reliability}%)`));
+            } else {
+                gameState.reliability = Math.max(30, gameState.reliability - 2);
+                gameState.prestige = Math.max(0, gameState.prestige - 6);
+                playSfx(180, 'sawtooth', 0.4);
+                logTelemetry(L(`💥 地面试车台突发爆炸事故！损毁硬件成本 $40M，荣誉值 -6，可靠性降至 ${gameState.reliability}%`, `💥 Ground test explosion! -$40M hardware, Prestige -6, reliability now ${gameState.reliability}%`));
+            }
+            renderUI();
+        }
+
+        function getMaxLoanLimit() {
+            if (gameState.prestige < 20) return 0;
+            return gameState.prestige > 70 ? 1000 : 600;
+        }
+
+        function requestBankLoan() {
+            if (gameState.prestige < 20) {
+                alert(L('🏦 贷款拒绝：商业银行认为您的航天声誉与荣誉值过于低下 (低于20)，拒绝提供任何信贷支持！', '🏦 Loan denied: the bank deems your prestige too low (below 20) and refuses all credit!'));
+                return;
+            }
+            if (gameState.activeLoanPrincipal > 0) {
+                alert(L('请先偿还当前未结清的银行贷款。', 'Please repay your outstanding bank loan first.'));
+                return;
+            }
+            if (gameState.loanCooldownSec > 0) {
+                alert(L(`贷款申请冷却中：请等待 ${gameState.loanCooldownSec} 秒。`, `Loan on cooldown: wait ${gameState.loanCooldownSec}s.`));
+                return;
+            }
+
+            const amtInput = parseInt(document.getElementById('loan-input-amount').value) || 300;
+            const maxLimit = getMaxLoanLimit();
+            const borrowAmt = Math.min(amtInput, maxLimit);
+
+            gameState.capital += borrowAmt;
+            gameState.activeLoanPrincipal = Math.round(borrowAmt * 1.15);
+
+            playSfx(700, 'sine', 0.2);
+            logTelemetry(L(`🏦 商业银行贷款获批：划拨资金 $${borrowAmt}M (含 15% 利息待还: $${gameState.activeLoanPrincipal}M)`, `🏦 Bank loan approved: +$${borrowAmt}M (15% interest, owe $${gameState.activeLoanPrincipal}M)`));
+
+            gameState.loanCooldownSec = 30;
+            if (gameState.loanCooldownTimer) clearInterval(gameState.loanCooldownTimer);
+            gameState.loanCooldownTimer = setInterval(() => {
+                gameState.loanCooldownSec--;
+                if (gameState.loanCooldownSec <= 0) {
+                    gameState.loanCooldownSec = 0;
+                    clearInterval(gameState.loanCooldownTimer);
+                }
+                renderUI();
+            }, 1000);
+
+            renderUI();
+        }
+
+        function repayActiveBankLoan() {
+            if (gameState.activeLoanPrincipal <= 0) return;
+            if (gameState.capital < gameState.activeLoanPrincipal) {
+                alert(L('资金不足以清偿银行贷款。', 'Insufficient funds to repay the bank loan.'));
+                return;
+            }
+            gameState.capital -= gameState.activeLoanPrincipal;
+            logTelemetry(L(`🏦 贷款结清：已偿还商业银行贷款 $${gameState.activeLoanPrincipal}M。`, `🏦 Loan settled: repaid $${gameState.activeLoanPrincipal}M.`));
+            gameState.activeLoanPrincipal = 0;
+            renderUI();
+        }
+
+        function payDownDebt() {
+            if (gameState.debt <= 0) return;
+            const payStep = Math.min(100, gameState.debt);
+            if (gameState.capital < payStep) return;
+            gameState.capital -= payStep;
+            gameState.debt -= payStep;
+            renderUI();
+        }
+
+        function getEstimatedVCValuation() {
+            const baseFund = gameState.prestige * 3.5;
+            const streakBonus = gameState.successfulLaunches * 12;
+            const constellationBonus = (gameState.satsInLEO + gameState.deepSpaceProbes) * 10;
+            return Math.max(30, Math.round(baseFund + streakBonus + constellationBonus));
+        }
+
+        function raiseVentureCapital() {
+            if (gameState.vcCooldownSec > 0) {
+                alert(L(`融资路演冷却中：请等待 ${gameState.vcCooldownSec} 秒后再次路演。`, `Roadshow on cooldown: wait ${gameState.vcCooldownSec}s.`));
+                return;
+            }
+
+            const raiseAmount = getEstimatedVCValuation();
+            gameState.capital += raiseAmount;
+
+            playSfx(950, 'sine', 0.3);
+            logTelemetry(L(`🤝 招商融资成功到账：凭借 ${gameState.prestige} 点荣誉值，成功完成股权融资，注入资金 $${raiseAmount}M！`, `🤝 Raise closed: with ${gameState.prestige} prestige, secured +$${raiseAmount}M in equity!`));
+
+            gameState.vcCooldownSec = 60;
+            if (gameState.vcCooldownTimer) clearInterval(gameState.vcCooldownTimer);
+            gameState.vcCooldownTimer = setInterval(() => {
+                gameState.vcCooldownSec--;
+                if (gameState.vcCooldownSec <= 0) {
+                    gameState.vcCooldownSec = 0;
+                    clearInterval(gameState.vcCooldownTimer);
+                }
+                renderUI();
+            }, 1000);
+
+            renderUI();
+        }
+
+        function renderFactionModal() {
+            const container = document.getElementById('faction-cards-container');
+            container.innerHTML = '';
+            Object.values(FACTIONS).forEach(f => {
+                const card = document.createElement('div');
+                card.className = 'hud-glass p-4 rounded-xl flex flex-col justify-between border-cyan-500/30 hover:border-cyan-400 transition cursor-pointer';
+                card.onclick = () => selectFaction(f.id);
+
+                card.innerHTML = `
+                    <div>
+                        <h3 class="font-orbitron font-bold text-base text-cyan-300 border-b border-cyan-500/20 pb-2">${LANG === 'en' ? f.name_en : f.name_zh}</h3>
+                        <p class="text-xs text-slate-300 mt-2 leading-relaxed font-sans">${LANG === 'en' ? f.desc_en : f.desc_zh}</p>
+                        <div class="mt-3 p-2 bg-slate-900/80 rounded border border-cyan-900 text-[11px] text-amber-300 font-mono">
+                            ${LANG === 'en' ? f.perk_en : f.perk_zh}
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-2 border-t border-slate-800 flex justify-between text-xs font-mono">
+                        <span>${L('初始资金: ', 'Initial Capital: ')}<b class="text-emerald-400">$${f.capital}M</b></span>
+                        <span>${L('初始债务: ', 'Initial Debt: ')}<b class="text-red-400">-$${f.debt}M</b></span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function selectFaction(id) {
+            const f = FACTIONS[id];
+            gameState.selectedFaction = f;
+            gameState.capital = f.capital;
+            gameState.debt = f.debt;
+            gameState.techPoints = f.techPoints;
+            gameState.prestige = f.prestige;
+            gameState.reliability = f.reliability;
+
+            document.getElementById('faction-modal').classList.add('hidden');
+            document.getElementById('hud-faction-name').innerText = LANG === 'en' ? f.name_en : f.name_zh;
+
+            startContractStream();
+            startQuarterTimer();
+            renderUI();
+        }
+
+        function startQuarterTimer() {
+            if (gameState.timerId) clearInterval(gameState.timerId);
+            gameState.timerId = setInterval(() => {
+                if (gameState.gameSpeed > 0) advanceQuarter();
+            }, 6000 / gameState.gameSpeed);
+        }
+
+        function setSpeed(sp) {
+            gameState.gameSpeed = sp;
+            document.getElementById('btn-pause').className = sp === 0 ? 'px-2.5 py-1 bg-cyan-600 text-black font-orbitron font-bold rounded' : 'px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-orbitron font-bold rounded border border-slate-600';
+            document.getElementById('btn-speed1').className = sp === 1 ? 'px-2.5 py-1 bg-cyan-600 text-black font-orbitron font-bold rounded' : 'px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-orbitron font-bold rounded border border-slate-600';
+            document.getElementById('btn-speed2').className = sp === 2 ? 'px-2.5 py-1 bg-cyan-600 text-black font-orbitron font-bold rounded' : 'px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-orbitron font-bold rounded border border-slate-600';
+            startQuarterTimer();
+        }
+
+        function advanceQuarter() {
+            gameState.quarter++;
+            if (gameState.quarter > 4) {
+                gameState.quarter = 1;
+                gameState.year++;
+                checkHistoricalWorldEvents();
+            }
+
+            if (gameState.selectedFaction?.id === 'nasa') gameState.capital += 40;
+            gameState.techPoints += (gameState.selectedFaction?.id === 'esa' ? 18 : 12);
+
+            if (gameState.standdownTurns > 0) gameState.standdownTurns--;
+
+            gameState.acceptedContracts.forEach(c => {
+                // 目标进度按“忽快忽慢”的随机增量推进（而非固定 +50），显示层再做平滑缓动
+                const step = 25 + Math.random() * 40;
+                c.prepProgress = Math.min(100, c.prepProgress + step);
+                if (c.prepProgress >= 100) c.status = 'READY';
+            });
+
+            if (gameState.capital < 0) {
+                gameState.debt += Math.abs(gameState.capital);
+                gameState.capital = 0;
+            }
+
+            const totalDebt = gameState.debt + gameState.activeLoanPrincipal;
+            if (gameState.capital - totalDebt < -1000) {
+                triggerEndgame(false);
+                return;
+            }
+
+            if (gameState.year >= 2030) {
+                triggerEndgame(true);
+                return;
+            }
+
+            renderUI();
+        }
+
+        function checkHistoricalWorldEvents() {
+            const yr = gameState.year;
+            if (yr === 2008) {
+                logTelemetry(L('📰 [世界大事件 2008] 全球金融危机爆发！信贷收紧，银行贷款利率提升，但商业订单需求激增。', '📰 [World Event 2008] Global financial crisis! Credit tightens, loan rates rise, but commercial demand surges.'));
+            } else if (yr === 2015) {
+                logTelemetry(L('📰 [新兴航天企业诞生] 中国商业航天破冰！蓝箭航天(LandSpace)与零壹空间宣告成立，进军低轨发射，抢占 5% 份额！', '📰 [New Rival] China commercial space emerges! LandSpace & OneSpace form, taking 5% share!'));
+                RIVALS.push({ id: 'landspace', name: '蓝箭航天 (LandSpace)', name_en: 'LandSpace', marketShare: 5.0 });
+                updateMarketShares();
+            } else if (yr === 2018) {
+                logTelemetry(L('📰 [新兴航天企业诞生] 星际荣耀 (iSpace) 完成双曲线一号高精度入轨，斩获商业卫星订单，抢占 4% 份额！', '📰 [New Rival] iSpace reaches orbit with Hyperbola-1, winning commercial orders and 4% share!'));
+                RIVALS.push({ id: 'ispace', name: '星际荣耀 (iSpace)', name_en: 'iSpace', marketShare: 4.0 });
+                updateMarketShares();
+            } else if (yr === 2023) {
+                logTelemetry(L('📰 [世界大事件 2023] 全球巨型卫星星座（如星链/国网）开启大规模部署，近地轨道 (LEO) 发射订单收益增加 30%！', '📰 [World Event 2023] Mega-constellations (Starlink/Guowang) begin deployment; LEO contract revenue +30%!'));
+            }
+        }
+
+        // 修改为：在按下【起飞】按钮后，先触发 Critical Choice 危机事件，再决定后续发射行为
+        function triggerCriticalChoiceBeforeLaunch(contractId) {
+            const choices = [
+                {
+                    title: "⚠️ 倒计时 30 秒：高空风切变警告",
+                    title_en: "⚠️ T-30s: High-Altitude Wind Shear",
+                    desc: "发射场上空突然检测到强烈高空风切变。若推迟发射至下个季度需要额外维护费 $20M；若强行按时点火发射，火箭基础可靠性降低 15%。",
+                    desc_en: "Strong wind shear detected above the pad. Delay to next quarter costs $20M maintenance; launch on time reduces reliability by 15%.",
+                    options: [
+                        { 
+                            text: "🛑 推迟发射：支付 $20M 重新安排窗口",
+                            text_en: "🛑 Delay launch: pay $20M to reschedule",
+                            action: () => { 
+                                gameState.capital -= 20; 
+                                logTelemetry(L("⏳ 决策：发射推迟。已支付 $20M 重新安排轨道窗口。", "⏳ Decision: launch delayed. Paid $20M to reschedule the window."));
+                                document.getElementById('choice-modal').classList.add('hidden');
+                                renderUI();
+                            } 
+                        },
+                        { 
+                            text: "🚀 冒风起飞：按照既定时间强行点火",
+                            text_en: "🚀 Launch anyway: ignite on schedule",
+                            action: () => { 
+                                logTelemetry(L("⚠️ 决策：冒风起飞！高空风切变使本次火箭成功率降低 15%。", "⚠️ Decision: launching in wind shear! Success rate -15%."));
+                                document.getElementById('choice-modal').classList.add('hidden');
+                                performActualLaunch(contractId, -15);
+                            } 
+                        }
+                    ]
+                },
+                {
+                    title: "⚠️ 倒计时 10 秒：上面级压力异常",
+                    title_en: "⚠️ T-10s: Upper Stage Pressure Anomaly",
+                    desc: "监测站发现上面级贮箱压力轻微偏高。若立即紧急关机并排查需追加花费 $35M；若信任自动阀门调节并继续点火，风险大幅增加。",
+                    desc_en: "The upper-stage tank pressure reads slightly high. Scrub and inspect costs $35M; trust the auto-valves and ignite at greatly increased risk.",
+                    options: [
+                        { 
+                            text: "🛠️ 紧急关机：追加 $35M 进行全面排查",
+                            text_en: "🛠️ Abort & inspect: spend $35M",
+                            action: () => { 
+                                gameState.capital -= 35; 
+                                logTelemetry(L("🛠️ 决策：紧急关机排查！消除了贮箱隐患。", "🛠️ Decision: aborted for inspection. Tank hazard cleared."));
+                                document.getElementById('choice-modal').classList.add('hidden');
+                                renderUI();
+                            } 
+                        },
+                        { 
+                            text: "🔥 强行点火：信任系统自我调节",
+                            text_en: "🔥 Ignite anyway: trust auto-regulation",
+                            action: () => { 
+                                logTelemetry(L("⚠️ 决策：强行点火！上面级压力风险导致起飞可靠性下降 20%。", "⚠️ Decision: ignited anyway! Upper-stage pressure risk reduces reliability by 20%."));
+                                document.getElementById('choice-modal').classList.add('hidden');
+                                performActualLaunch(contractId, -20);
+                            } 
+                        }
+                    ]
+                },
+                {
+                    title: "💰 临门一脚：商业客户要求追加临时载荷",
+                    title_en: "💰 Last-Minute: Client Wants Extra Payload",
+                    desc: "客户临时要求把一颗实验卫星装载进整流罩余量空间，愿意即刻追加奖励 $100M，但会使本次发射难度上升且成功率降 10%。",
+                    desc_en: "The client wants to squeeze an extra test satellite into the fairing for +$100M, but it raises difficulty and drops success by 10%.",
+                    options: [
+                        { 
+                            text: "💰 接受拼车：多赚取 $100M 奖励金",
+                            text_en: "💰 Accept rideshare: +$100M bonus",
+                            action: () => { 
+                                gameState.capital += 100; 
+                                logTelemetry(L("💰 决策：接受临时拼车，额外拿到 $100M 奖金！但火箭超载导致成功率降低 10%。", "💰 Decision: rideshare accepted, +$100M bonus! Overload drops success by 10%."));
+                                document.getElementById('choice-modal').classList.add('hidden');
+                                performActualLaunch(contractId, -10);
+                            } 
+                        },
+                        { 
+                            text: "❌ 保持原状：拒绝临时搭载，正常起飞",
+                            text_en: "❌ Decline: launch as planned",
+                            action: () => { 
+                                logTelemetry(L("🛡️ 决策：拒绝临时搭载，按原计划直接发射。", "🛡️ Decision: rideshare declined, launching as planned."));
+                                document.getElementById('choice-modal').classList.add('hidden');
+                                performActualLaunch(contractId, 0);
+                            } 
+                        }
+                    ]
+                }
+            ];
+
+            const ev = choices[Math.floor(Math.random() * choices.length)];
+            document.getElementById('choice-title').innerText = LANG === 'en' ? ev.title_en : ev.title;
+            document.getElementById('choice-desc').innerText = LANG === 'en' ? ev.desc_en : ev.desc;
+
+            const optContainer = document.getElementById('choice-options-container');
+            optContainer.innerHTML = '';
+            ev.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left p-3 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-red-500/40 text-xs font-mono text-slate-200 transition';
+                btn.innerText = LANG === 'en' ? opt.text_en : opt.text;
+                btn.onclick = () => {
+                    opt.action();
+                };
+                optContainer.appendChild(btn);
+            });
+
+            document.getElementById('choice-modal').classList.remove('hidden');
+        }
+
+        let contractStreamTimer = null;
+        function startContractStream() {
+            if (contractStreamTimer) clearInterval(contractStreamTimer);
+            generateRandomContract();
+            // 使用递归 setTimeout 替代固定 setInterval，避免多次调用叠加导致订单雪崩
+            function scheduleNext() {
+                contractStreamTimer = setTimeout(() => {
+                    if (gameState.marketContracts.length < 4) {
+                        generateRandomContract();
+                        renderUI();
+                    }
+                    scheduleNext();
+                }, Math.floor(Math.random() * 20000) + 20000);
+            }
+            scheduleNext();
+        }
+
+        function generateRandomContract() {
+            // 根据当前已解锁轨道与年代，筛选出玩家“有能力承接”的轨道池，避免刷出接不了的订单
+            const availableOrbits = [];
+            if (gameState.unlockedOrbits.includes('LEO')) availableOrbits.push('LEO');
+            if (gameState.unlockedOrbits.includes('GEO') && gameState.year >= 2003) availableOrbits.push('GEO');
+            if (gameState.unlockedOrbits.includes('Moon') && gameState.year >= 2008) availableOrbits.push('Moon');
+            if (gameState.unlockedOrbits.includes('Mars') && gameState.year >= 2018) availableOrbits.push('Mars');
+            if (availableOrbits.length === 0) availableOrbits.push('LEO');
+
+            const chosenOrbit = availableOrbits[Math.floor(Math.random() * availableOrbits.length)];
+
+            const contractId = 'c_' + Date.now() + '_' + Math.floor(Math.random() * 100);
+            const isCrewed = Math.random() < 0.25;
+
+            let baseWeight = chosenOrbit === 'LEO' ? 8 : (chosenOrbit === 'GEO' ? 14 : (chosenOrbit === 'Moon' ? 28 : 50));
+            // 载荷质量压在上限（当前运力）以内，避免出现“永远接不了”的订单
+            let weightTons = Math.round(baseWeight + Math.random() * 12);
+            weightTons = Math.min(weightTons, Math.max(1, gameState.maxPayloadTons));
+
+            const reward = Math.round(weightTons * 30 + Math.random() * 300);
+            const buildCost = Math.round(reward * (gameState.unlockedTech.includes('grid_fins_land') ? 0.25 : 0.38));
+            const failPenalty = Math.round(reward * 0.8);
+
+            let title_zh = isCrewed ? `👨‍🚀 载人空间站/深空基地任务 (${chosenOrbit})` : `📡 商业通信/遥感/深空探针 (${chosenOrbit})`;
+            let title_en = isCrewed ? `👨‍🚀 Crewed Station / Deep-Space Base (${chosenOrbit})` : `📡 Commercial Comsat / Remote-Sensing Probe (${chosenOrbit})`;
+            if (chosenOrbit === 'Mars') { title_zh = `🔴 火星先锋建设计划与轨道飞船 (${chosenOrbit})`; title_en = `🔴 Mars Pioneer Base & Orbital Ship (${chosenOrbit})`; }
+            if (chosenOrbit === 'Moon') { title_zh = `🌕 月球基地建设计划与采样返回 (${chosenOrbit})`; title_en = `🌕 Lunar Base & Sample Return (${chosenOrbit})`; }
+
+            // 难度等级：按轨道 + 载人综合判定，用于订单池卡片配色
+            const orbitRank = { 'LEO': 1, 'GEO': 2, 'Moon': 3, 'Mars': 4 };
+            let difficulty = orbitRank[chosenOrbit] || 1;
+            if (isCrewed) difficulty = Math.min(4, difficulty + 1);
+
+            gameState.marketContracts.push({
+                id: contractId,
+                orbit: chosenOrbit,
+                weightTons,
+                reward,
+                buildCost,
+                failPenalty,
+                isCrewed,
+                difficulty,
+                title_zh,
+                title_en,
+                desc_zh: `有效载荷: ${weightTons} 吨至 ${chosenOrbit} 轨道。成功奖励 $${reward}M，失败惩罚 -$${failPenalty}M。`,
+                desc_en: `Payload: ${weightTons}t to ${chosenOrbit}. Reward $${reward}M, fail penalty -$${failPenalty}M.`
+            });
+        }
+
+        function acceptContract(id) {
+            const idx = gameState.marketContracts.findIndex(c => c.id === id);
+            if (idx === -1) return;
+            const c = gameState.marketContracts.splice(idx, 1)[0];
+            c.status = 'PREPPING';
+            c.prepProgress = 0;
+            c.displayProgress = 0;   // 显示层进度，用于平滑动画
+            gameState.acceptedContracts.push(c);
+            playSfx(600, 'sine', 0.1);
+            renderUI();
+        }
+
+        function rejectContract(id) {
+            gameState.marketContracts = gameState.marketContracts.filter(c => c.id !== id);
+            playSfx(250, 'square', 0.1);
+            renderUI();
+        }
+
+        function cancelAcceptedContract(id) {
+            gameState.acceptedContracts = gameState.acceptedContracts.filter(c => c.id !== id);
+            renderUI();
+        }
+
+        // 按下【🚀 授权火箭起飞】按钮入口
+        function executeLaunch(id) {
+            // 40% 概率触发发射前的关键危机抉择弹窗问问题
+            if (Math.random() < 0.40) {
+                triggerCriticalChoiceBeforeLaunch(id);
+            } else {
+                performActualLaunch(id, 0);
+            }
+        }
+
+        // 实际发射计算与起飞执行
+        function performActualLaunch(id, reliabilityModifier = 0) {
+            const c = gameState.acceptedContracts.find(item => item.id === id);
+            if (!c) return;
+
+            if (gameState.capital < c.buildCost) return;
+            gameState.capital -= c.buildCost;
+
+            const finalReliability = Math.max(10, gameState.reliability + reliabilityModifier);
+            const isSuccess = Math.random() * 100 < finalReliability;
+
+            gameState.activeRocketAnim.push({
+                progress: 0,
+                success: isSuccess,
+                isCrewed: c.isCrewed
+            });
+
+            if (isSuccess) {
+                gameState.capital += c.reward;
+                gameState.successfulLaunches++;
+                gameState.prestige = Math.min(100, gameState.prestige + (c.isCrewed ? 8 : 3));
+                if (c.orbit === 'LEO' || c.orbit === 'GEO') gameState.satsInLEO++;
+                else gameState.deepSpaceProbes++;
+                
+                updateMarketShares('player', null);
+                playSfx(880, 'sine', 0.4);
+                const ttl = LANG === 'en' ? (c.title_en || c.title_zh) : c.title_zh;
+                logTelemetry(L(`🚀 发射成功：${c.title_zh} 顺利入轨！奖励 +$${c.reward}M，荣誉值提升，全球市场份额涨至 ${gameState.playerMarketShare}%`, `🚀 Launch success: ${ttl} in orbit! +$${c.reward}M, prestige up, share now ${gameState.playerMarketShare}%`));
+            } else {
+                gameState.failedLaunches++;
+                gameState.capital -= c.failPenalty;
+                gameState.prestige = Math.max(0, gameState.prestige - (c.isCrewed ? 28 : 12));
+                if (c.isCrewed) gameState.standdownTurns = 3;
+
+                updateMarketShares(null, 'player');
+                playSfx(150, 'sawtooth', 0.5);
+                const ttl2 = LANG === 'en' ? (c.title_en || c.title_zh) : c.title_zh;
+                logTelemetry(L(`💥 发射失利：${c.title_zh} 发生灾难性爆炸！罚款 -$${c.failPenalty}M，荣誉值重挫，全球市场份额跌至 ${gameState.playerMarketShare}%`, `💥 Launch failure: ${ttl2} exploded! -$${c.failPenalty}M, prestige hit, share now ${gameState.playerMarketShare}%`));
+            }
+
+            gameState.acceptedContracts = gameState.acceptedContracts.filter(item => item.id !== id);
+
+            if (gameState.capital < 0) {
+                gameState.debt += Math.abs(gameState.capital);
+                gameState.capital = 0;
+            }
+
+            const totalDebt = gameState.debt + gameState.activeLoanPrincipal;
+            if (gameState.capital - totalDebt < -1000) {
+                triggerEndgame(false);
+                return;
+            }
+
+            renderUI();
+        }
+
+        function unlockTech(id) {
+            const t = TECH_TREE.find(item => item.id === id);
+            if (!t) return;
+            if (gameState.techPoints < t.costTP || gameState.capital < t.costCap) return;
+
+            gameState.techPoints -= t.costTP;
+            gameState.capital -= t.costCap;
+            gameState.unlockedTech.push(t.id);
+
+            if (t.id === 'kerolox_gen2') {
+                gameState.maxPayloadTons = 18.0;
+                gameState.reliability += 5;
+            } else if (t.id === 'geo_orbit') {
+                if (!gameState.unlockedOrbits.includes('GEO')) gameState.unlockedOrbits.push('GEO');
+            } else if (t.id === 'hydrolox_upper') {
+                if (!gameState.unlockedOrbits.includes('Moon')) gameState.unlockedOrbits.push('Moon');
+                gameState.maxPayloadTons = 35.0;
+            } else if (t.id === 'methalox_heavy') {
+                if (!gameState.unlockedOrbits.includes('Mars')) gameState.unlockedOrbits.push('Mars');
+                gameState.maxPayloadTons = 80.0;
+            } else if (t.id === 'orbital_refuel') {
+                gameState.maxPayloadTons = 120.0;
+            }
+
+            playSfx(600, 'triangle', 0.2);
+            renderUI();
+        }
+
+        function triggerEndgame(isVictory) {
+            if (gameState.timerId) clearInterval(gameState.timerId);
+            document.getElementById('endgame-modal').classList.remove('hidden');
+
+            document.getElementById('end-prestige').innerText = gameState.prestige;
+            document.getElementById('end-capital').innerText = `$${gameState.capital - gameState.debt}M`;
+            document.getElementById('end-market').innerText = `${gameState.playerMarketShare}%`;
+            document.getElementById('end-launches').innerText = `${gameState.successfulLaunches} / ${gameState.failedLaunches}`;
+
+            const titleEl = document.getElementById('endgame-title');
+            const bodyEl = document.getElementById('endgame-body');
+
+            if (!isVictory) {
+                titleEl.innerText = L('破产清算公告', 'BANKRUPTCY NOTICE');
+                titleEl.className = 'font-orbitron font-black text-3xl text-red-500 mt-1';
+                bodyEl.innerText = L('您的航天机构负债累累，净资产已降至 -$1000M 以下。债权人与联邦监管部门冻结了全部发射塔架并对资产进行清算。', 'Your agency is insolvent, with net worth below -$1000M. Creditors and regulators have frozen all launch pads and liquidated assets.');
+            } else {
+                titleEl.innerText = L('航天黄金时代胜利', 'GOLDEN AGE VICTORY');
+                titleEl.className = 'font-orbitron font-black text-3xl text-emerald-400 mt-1';
+                bodyEl.innerText = L('恭喜！您成功掌舵航天舰队跨越 30 年豪赌历程 (2000-2030)，在竞品巨头与新兴公司的夹击下征服了太阳系深空！', 'Congratulations! You steered your fleet through 30 years (2000-2030), conquering deep space against giants and startups alike!');
+            }
+        }
+
+        function renderUI() {
+            document.getElementById('hud-year').innerText = gameState.year;
+            document.getElementById('hud-quarter').innerText = `Q${gameState.quarter}`;
+
+            const totalQuarters = (2030 - 2000) * 4;
+            const elapsedQuarters = (gameState.year - 2000) * 4 + (gameState.quarter - 1);
+            const timelinePercent = Math.min(100, Math.max(0, (elapsedQuarters / totalQuarters) * 100));
+            document.getElementById('timeline-bar').style.width = `${timelinePercent}%`;
+            document.getElementById('timeline-progress-label').innerText = L(`${gameState.year}年 Q${gameState.quarter} (${Math.round(timelinePercent)}%)`, `${gameState.year} Q${gameState.quarter} (${Math.round(timelinePercent)}%)`);
+
+            const totalDebt = gameState.debt + gameState.activeLoanPrincipal;
+            const netWorth = gameState.capital - totalDebt;
+            const netEl = document.getElementById('res-networth');
+            netEl.innerText = `$${netWorth}M`;
+            netEl.className = netWorth < -600 ? 'font-orbitron text-sm font-bold text-red-400 animate-pulse' : 'font-orbitron text-sm font-bold text-emerald-300';
+
+            const sdBadge = document.getElementById('hud-standdown-badge');
+            if (gameState.standdownTurns > 0) {
+                sdBadge.classList.remove('hidden');
+                document.getElementById('standdown-turns').innerText = gameState.standdownTurns;
+            } else {
+                sdBadge.classList.add('hidden');
+            }
+
+            document.getElementById('res-capital').innerText = `$${gameState.capital}M`;
+            document.getElementById('res-debt').innerText = `-$${gameState.debt}M`;
+            document.getElementById('res-tech').innerText = `${gameState.techPoints} TP`;
+            document.getElementById('res-prestige').innerText = `${gameState.prestige}`;
+            document.getElementById('res-reliability').innerText = `${gameState.reliability}%`;
+            document.getElementById('res-market').innerText = `${gameState.playerMarketShare}%`;
+
+            // 本版未开放融资渠道：VC / 贷款面板不存在，跳过相关状态刷新
+
+            document.getElementById('stat-max-payload').innerText = `${gameState.maxPayloadTons.toFixed(1)} ${L('吨', 't')}`;
+            document.getElementById('stat-unlocked-orbits').innerText = gameState.unlockedOrbits.join(', ');
+            document.getElementById('stat-flight-rel').innerText = `${gameState.reliability}%`;
+            document.getElementById('bar-flight-rel').style.width = `${gameState.reliability}%`;
+
+            document.getElementById('telemetry-sats').innerText = gameState.satsInLEO;
+            document.getElementById('telemetry-probes').innerText = gameState.deepSpaceProbes;
+
+            renderTechList();
+            renderMarketContractsList();
+            renderActiveContractsList();
+            renderRivalsList();
+        }
+
+        function renderTechList() {
+            const container = document.getElementById('tech-list-container');
+            container.innerHTML = '';
+
+            TECH_TREE.forEach(tech => {
+                const isUnlocked = gameState.unlockedTech.includes(tech.id);
+                const card = document.createElement('div');
+                card.className = `p-2 rounded-lg border text-xs transition ${
+                    isUnlocked ? 'bg-emerald-950/40 border-emerald-500/50' : 'bg-slate-900/80 border-cyan-950'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <span class="font-orbitron font-bold text-slate-200">${LANG === 'en' ? tech.name_en : tech.name_zh}</span>
+                        <span class="font-mono text-[10px] text-cyan-400">${tech.costTP} TP | $${tech.costCap}M</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-0.5">${LANG === 'en' ? tech.desc_en : tech.desc_zh}</p>
+                    <div class="mt-1.5 flex justify-between items-center">
+                        <span class="text-[9px] font-mono text-slate-500">${tech.era} ${L('年代节点', ' era node')}</span>
+                        ${isUnlocked ? `<span class="text-emerald-400 font-bold font-mono text-[10px]">✓ ${L('已解锁', 'Unlocked')}</span>` :
+                            `<button onclick="unlockTech('${tech.id}')" ${ (gameState.techPoints < tech.costTP || gameState.capital < tech.costCap) ? 'disabled' : ''} class="px-2 py-0.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-600 text-black font-orbitron font-bold rounded text-[9px]">
+                                ${L('研发技术', 'Research')}
+                            </button>`
+                        }
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderMarketContractsList() {
+            const container = document.getElementById('market-contracts-container');
+            container.innerHTML = '';
+
+            if (gameState.marketContracts.length === 0) {
+                container.innerHTML = `<div class="text-xs text-slate-500 text-center py-6 font-mono">${L('等待商业与政府订单推送中...', 'Awaiting contract offers...')}</div>`;
+                return;
+            }
+
+            gameState.marketContracts.forEach(c => {
+                const card = document.createElement('div');
+
+                // v1 骨架版：接单卡片统一中性配色（按难度分色留到后续版本）
+                const ds = { border: 'border-slate-700', bg: 'bg-slate-900/70', label: L('常规任务', 'Standard'), labelColor: 'text-slate-400' };
+
+                card.className = `${ds.bg} ${ds.border} p-2.5 rounded-lg flex flex-col justify-between gap-2 text-xs border`;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <span class="font-orbitron font-bold text-amber-300">${LANG === 'en' ? (c.title_en || c.title_zh) : c.title_zh}</span>
+                            <span class="text-emerald-400 font-mono font-bold">+$${c.reward}M</span>
+                        </div>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[9px] font-mono ${ds.labelColor} px-1.5 py-0.5 rounded border ${ds.border.replace('/50', '/40').replace('/60', '/50')}">${ds.label}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1 text-[10px] font-mono text-slate-300 mt-1">
+                            <div>${L('目标轨道:', 'Orbit:')} <span class="text-cyan-300 font-bold">${c.orbit}</span></div>
+                            <div>${L('载荷质量:', 'Payload:')} <span class="text-amber-400 font-bold">${c.weightTons}${L('吨', 't')}</span></div>
+                            <div>${L('制造成本:', 'Build Cost:')} <span class="text-slate-400">$${c.buildCost}M</span></div>
+                            <div>${L('失利罚款:', 'Fail Penalty:')} <span class="text-red-400">-$${c.failPenalty}M</span></div>
+                        </div>
+                        <p class="text-[9.5px] text-slate-400 mt-1 leading-tight">${LANG === 'en' ? (c.desc_en || c.desc_zh) : c.desc_zh}</p>
+                    </div>
+                    <div class="flex gap-2 pt-1 border-t border-slate-700/60">
+                        <button onclick="acceptContract('${c.id}')" class="flex-1 py-1 bg-emerald-600 hover:bg-emerald-500 text-black font-orbitron font-bold rounded text-[10px] transition">
+                            ${L('接受订单', 'Accept')}
+                        </button>
+                        <button onclick="rejectContract('${c.id}')" class="px-2.5 py-1 bg-slate-800 hover:bg-red-900/60 text-red-300 font-orbitron font-bold rounded text-[10px] border border-red-500/30 transition">
+                            ${L('拒绝', 'Reject')}
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderActiveContractsList() {
+            const container = document.getElementById('active-contracts-container');
+            container.innerHTML = '';
+            document.getElementById('active-count-badge').innerText = `${gameState.acceptedContracts.length} ${L('项待发射', 'ready to launch')}`;
+
+            if (gameState.acceptedContracts.length === 0) {
+                container.innerHTML = `<div class="text-xs text-slate-500 text-center py-6 font-mono">${L('尚无已接订单。请在左侧订单池接受商单。', 'No accepted orders. Accept contracts from the pool.')}</div>`;
+                return;
+            }
+
+            gameState.acceptedContracts.forEach(c => {
+                const orbitOk = gameState.unlockedOrbits.includes(c.orbit);
+                const weightOk = gameState.maxPayloadTons >= c.weightTons;
+                const fundsOk = gameState.capital >= c.buildCost;
+                const readyOk = c.status === 'READY';
+
+                const canLaunch = orbitOk && weightOk && fundsOk && readyOk && gameState.standdownTurns === 0;
+
+                const card = document.createElement('div');
+                card.className = `hud-glass-emerald p-2.5 rounded-lg flex flex-col justify-between gap-2 text-xs border-emerald-500/30`;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <span class="font-orbitron font-bold text-emerald-300">${LANG === 'en' ? (c.title_en || c.title_zh) : c.title_zh}</span>
+                            <span class="text-emerald-400 font-mono font-bold">+$${c.reward}M</span>
+                        </div>
+                        <div class="mt-1.5">
+                            <div class="flex justify-between text-[9px] font-mono text-slate-400 mb-0.5">
+                                <span>${L('火箭组装与测试进度', 'Assembly & Test Progress')}</span>
+                                <span>${Math.round(c.displayProgress ?? c.prepProgress)}%</span>
+                            </div>
+                            <div class="w-full bg-slate-950 rounded-full h-1.5 border border-slate-800 overflow-hidden">
+                                <div class="bg-cyan-400 h-full" style="width: ${c.displayProgress ?? c.prepProgress}%;"></div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1 text-[9.5px] font-mono mt-2 p-1.5 bg-slate-950/80 rounded border border-slate-800">
+                            <div class="${orbitOk ? 'text-emerald-400' : 'text-red-400'}">${orbitOk ? '✓' : '✗'} ${L('轨道:', 'Orbit:')} ${c.orbit}</div>
+                            <div class="${weightOk ? 'text-emerald-400' : 'text-red-400'}">${weightOk ? '✓' : '✗'} ${L('质量:', 'Mass:')} ${c.weightTons}T / ${gameState.maxPayloadTons}T</div>
+                            <div class="${fundsOk ? 'text-emerald-400' : 'text-red-400'}">${fundsOk ? '✓' : '✗'} ${L('组装费:', 'Build:')} $${c.buildCost}M</div>
+                            <div class="${readyOk ? 'text-emerald-400' : 'text-amber-400'}">${readyOk ? '✓ ' + L('准备就绪', 'READY') : '⏳ ' + L('组装中...', 'PREPPING...')}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 pt-1">
+                        <button onclick="executeLaunch('${c.id}')" ${!canLaunch ? 'disabled' : ''} class="flex-1 py-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 disabled:bg-slate-800 disabled:text-slate-600 text-black font-orbitron font-bold rounded text-[10px] transition">
+                            🚀 ${L('授权火箭起飞', 'AUTHORIZE LAUNCH')} ($${c.buildCost}M)
+                        </button>
+                        <button onclick="cancelAcceptedContract('${c.id}')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-400 font-orbitron text-[9px] rounded border border-slate-700">
+                            ${L('放弃任务', 'Abandon')}
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderRivalsList() {
+            const container = document.getElementById('rivals-container');
+            container.innerHTML = '';
+
+            const pItem = document.createElement('div');
+            pItem.className = 'bg-cyan-950/40 border border-cyan-500/50 p-1.5 rounded flex justify-between items-center text-xs font-mono';
+            pItem.innerHTML = `
+                <span class="text-cyan-300 font-bold">★ ${gameState.selectedFaction ? (LANG === 'en' ? gameState.selectedFaction.name_en.split(' ')[0] : gameState.selectedFaction.name_zh.split(' ')[0]) : L('玩家舰队', 'Player Fleet')}</span>
+                <span class="text-cyan-400 font-bold">${gameState.playerMarketShare}% ${L('份额', 'share')}</span>
+            `;
+            container.appendChild(pItem);
+
+            RIVALS.forEach(r => {
+                const item = document.createElement('div');
+                item.className = 'bg-slate-950/60 border border-slate-800 p-1.5 rounded flex justify-between items-center text-xs font-mono';
+                item.innerHTML = `
+                    <span class="text-slate-300">${LANG === 'en' ? (r.name_en || r.name) : r.name}</span>
+                    <span class="text-purple-400 font-bold">${r.marketShare}% ${L('份额', 'share')}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function logTelemetry(msg) {
+            const container = document.getElementById('telemetry-log');
+            const entry = document.createElement('div');
+            entry.innerText = msg;
+            container.prepend(entry);
+        }
+
+        // —— 平滑进度动画：让显示层进度向目标值缓动靠近，并叠加正弦波动，呈现“忽快忽慢”效果 ——
+        function animateContractProgress() {
+            let changed = false;
+            gameState.acceptedContracts.forEach(c => {
+                if (c.displayProgress === undefined) c.displayProgress = c.prepProgress;
+                const target = c.prepProgress;
+                const cur = c.displayProgress;
+                const gap = target - cur;
+
+                if (Math.abs(gap) < 0.05) {
+                    // 已到达目标，若有微小误差则对齐
+                    if (cur !== target) { c.displayProgress = target; changed = true; }
+                } else {
+                    // 非匀速缓动：步长随剩余差值变化，配合时间正弦波制造忽快忽慢
+                    const eased = gap * 0.06 + Math.sin(performance.now() / 350) * 0.25;
+                    c.displayProgress = Math.min(100, cur + eased);
+                    changed = true;
+                }
+            });
+
+            if (changed) renderActiveContractsList();
+
+            requestAnimationFrame(animateContractProgress);
+        }
+
+        const canvas = document.getElementById('orbitalCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function drawOrbitalCanvas() {
+            const w = canvas.width = canvas.parentElement.clientWidth;
+            const h = canvas.height = canvas.parentElement.clientHeight;
+
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, w, h);
+
+            smoothTimeCounter += 0.01;
+
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < 50; i++) {
+                const sx = (Math.sin(i * 99 + 1) * 0.5 + 0.5) * w;
+                const sy = (Math.cos(i * 33 + 1) * 0.5 + 0.5) * h;
+                ctx.globalAlpha = Math.sin(smoothTimeCounter * 2 + i) * 0.3 + 0.5;
+                ctx.fillRect(sx, sy, 1.2, 1.2);
+            }
+            ctx.globalAlpha = 1.0;
+
+            const cx = w * 0.5;
+            const cy = h * 0.5;
+
+            if (currentCelestialView === 'earth') {
+                const earthR = 36;
+                const glow = ctx.createRadialGradient(cx, cy, earthR, cx, cy, earthR + 25);
+                glow.addColorStop(0, 'rgba(56, 189, 248, 0.45)');
+                glow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(cx, cy, earthR + 25, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#0284c7';
+                ctx.beginPath();
+                ctx.arc(cx, cy, earthR, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.arc(cx, cy, earthR + 35, 0, Math.PI * 2);
+                ctx.arc(cx, cy, earthR + 65, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                const satCount = Math.max(4, gameState.satsInLEO * 2 + 4);
+                for (let i = 0; i < satCount; i++) {
+                    const angle = smoothTimeCounter * 0.8 * (i % 2 === 0 ? 1 : -1) + i * (Math.PI * 2 / satCount);
+                    const dist = earthR + 35 + (i % 3) * 14;
+                    const sx = cx + Math.cos(angle) * dist;
+                    const sy = cy + Math.sin(angle) * dist;
+
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, 2.2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+            } else if (currentCelestialView === 'moon') {
+                ctx.fillStyle = '#cbd5e1';
+                ctx.beginPath();
+                ctx.arc(cx - 60, cy, 30, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#94a3b8';
+                ctx.beginPath();
+                ctx.arc(cx + 60, cy, 15, 0, Math.PI * 2);
+                ctx.fill();
+
+                const pAngle = smoothTimeCounter * 1.2;
+                const px = (cx + 60) + Math.cos(pAngle) * 28;
+                const py = cy + Math.sin(pAngle) * 28;
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.arc(px, py, 2.8, 0, Math.PI * 2);
+                ctx.fill();
+
+            } else if (currentCelestialView === 'mars') {
+                const marsGlow = ctx.createRadialGradient(cx, cy, 30, cx, cy, 55);
+                marsGlow.addColorStop(0, 'rgba(239, 68, 68, 0.4)');
+                marsGlow.addColorStop(1, 'rgba(239, 68, 68, 0)');
+                ctx.fillStyle = marsGlow;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 55, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.arc(cx, cy, 34, 0, Math.PI * 2);
+                ctx.fill();
+
+            } else if (currentCelestialView === 'solar') {
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.arc(40, cy, 24, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+                ctx.beginPath();
+                ctx.arc(40, cy, 75, 0, Math.PI * 2);
+                ctx.arc(40, cy, 140, 0, Math.PI * 2);
+                ctx.stroke();
+
+                const eAngle = smoothTimeCounter * 0.5;
+                const ex = 40 + Math.cos(eAngle) * 75;
+                const ey = cy + Math.sin(eAngle) * 75;
+                ctx.fillStyle = '#38bdf8';
+                ctx.beginPath();
+                ctx.arc(ex, ey, 4.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                const mAngle = smoothTimeCounter * 0.3;
+                const mx = 40 + Math.cos(mAngle) * 140;
+                const my = cy + Math.sin(mAngle) * 140;
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(mx, my, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            gameState.activeRocketAnim.forEach((rk, idx) => {
+                rk.progress += 0.02;
+                const t = rk.progress;
+
+                const startX = w * 0.12;
+                const startY = h * 0.82;
+                const targetX = w * 0.88;
+                const targetY = h * 0.22;
+
+                const curX = startX + (targetX - startX) * t;
+                const curY = startY + (targetY - startY) * t - Math.sin(t * Math.PI) * 60;
+
+                ctx.strokeStyle = rk.success ? (rk.isCrewed ? '#ef4444' : '#34d399') : '#f87171';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(curX, curY);
+                ctx.stroke();
+
+                ctx.fillStyle = rk.success ? '#34d399' : '#ef4444';
+                ctx.beginPath();
+                ctx.arc(curX, curY, rk.isCrewed ? 5.5 : 3.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (rk.progress >= 1) {
+                    gameState.activeRocketAnim.splice(idx, 1);
+                }
+            });
+
+            requestAnimationFrame(drawOrbitalCanvas);
+        }
+
+        window.onload = () => {
+            // 初始化 html lang 与标题
+            document.documentElement.lang = LANG === 'en' ? 'en' : 'zh-CN';
+            document.title = LANG === 'en' ? 'Space Empire: The High Stakes (2000-2030)' : '航天帝国：豪赌 (2000-2030) - 进阶版';
+
+            // 应用持久化的语言偏好（不触发 renderUI，避免未选阵营时报错）
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                el.innerText = t(el.getAttribute('data-i18n'));
+            });
+            // 高亮当前语言按钮
+            const bzh = document.getElementById('btn-lang-zh');
+            const ben = document.getElementById('btn-lang-en');
+            if (bzh && ben) {
+                const on = 'px-2.5 py-1 bg-cyan-600 text-black text-xs font-orbitron font-bold rounded';
+                const off = 'px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-orbitron font-bold rounded border border-slate-600';
+                bzh.className = LANG === 'zh' ? on : off;
+                ben.className = LANG === 'en' ? on : off;
+            }
+
+            startCinematicIntroSequence();
+            requestAnimationFrame(drawOrbitalCanvas);
+            requestAnimationFrame(animateContractProgress);
+
+            setTimeout(() => {
+                dismissIntroImmediately();
+            }, 3000);
+        };
+    </script>
+</body>
+</html>
